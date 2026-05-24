@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FoodSaver</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #2e7d32;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+
+    button {
+      background: #2e7d32;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1b5e20;
+    }
+
+    .food-card {
+      background: #fafafa;
+      padding: 15px;
+      border-radius: 12px;
+      margin-top: 15px;
+      border-left: 6px solid green;
+    }
+
+    .warning {
+      border-left-color: orange;
+    }
+
+    .danger {
+      border-left-color: red;
+    }
+
+    .recipe {
+      margin-top: 10px;
+      font-weight: bold;
+      color: #444;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🥦 FoodSaver</h1>
+
+  <input type="text" id="foodName" placeholder="Produktnamn" />
+
+  <input type="date" id="expiryDate" />
+
+  <button onclick="saveFood()">Spara Vara</button>
+
+  <div id="foodList"></div>
+</div>
+
+<script>
+  let foods = JSON.parse(localStorage.getItem('foods')) || [];
+
+  function saveFood() {
+    const name = document.getElementById('foodName').value;
+    const expiry = document.getElementById('expiryDate').value;
+
+    if (!name || !expiry) {
+      alert('Fyll i alla fält');
+      return;
+    }
+
+    foods.push({ name, expiry });
+
+    localStorage.setItem('foods', JSON.stringify(foods));
+
+    document.getElementById('foodName').value = '';
+    document.getElementById('expiryDate').value = '';
+
+    displayFoods();
+  }
+
+  function getDaysLeft(date) {
+    const today = new Date();
+    const expiryDate = new Date(date);
+
+    const diff = expiryDate - today;
+
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  }
+
+  function getRecipe(name) {
+    const food = name.toLowerCase();
+
+    if (food.includes('mjölk')) {
+      return '🥞 Tips: Gör pannkakor eller smoothie';
+    }
+
+    if (food.includes('banan')) {
+      return '🍌 Tips: Gör bananbröd eller milkshake';
+    }
+
+    if (food.includes('bröd')) {
+      return '🍞 Tips: Gör toast eller krutonger';
+    }
+
+    if (food.includes('ost')) {
+      return '🧀 Tips: Gör toast eller pasta';
+    }
+
+    return '🍴 Tips: Använd varan i middag eller lunch';
+  }
+
+  function sendNotification(text) {
+    if (Notification.permission === 'granted') {
+      new Notification(text);
+    }
+  }
+
+  function displayFoods() {
+    const list = document.getElementById('foodList');
+
+    list.innerHTML = '';
+
+    foods.forEach(food => {
+      const daysLeft = getDaysLeft(food.expiry);
+
+      let cardClass = 'food-card';
+      let warningText = '✅ Fortfarande färsk';
+
+      if (daysLeft <= 4) {
+        cardClass += ' warning';
+        warningText = '⚠️ Går snart ut';
+      }
+
+      if (daysLeft <= 1) {
+        cardClass += ' danger';
+        warningText = '🚨 Går ut imorgon!';
+      }
+
+      if (daysLeft === 4) {
+        sendNotification(food.name + ' går ut om 4 dagar');
+      }
+
+      if (daysLeft === 2) {
+        sendNotification(food.name + ' går ut om 2 dagar');
+      }
+
+      if (daysLeft === 1) {
+        sendNotification(food.name + ' går ut imorgon!');
+      }
+
+      const recipe = getRecipe(food.name);
+
+      list.innerHTML += `
+        <div class="${cardClass}">
+          <h3>${food.name}</h3>
+          <p><strong>Utgångsdatum:</strong> ${food.expiry}</p>
+          <p><strong>Dagar kvar:</strong> ${daysLeft}</p>
+          <p>${warningText}</p>
+          <div class="recipe">${recipe}</div>
+        </div>
+      `;
+    });
+  }
+
+  if ('Notification' in window) {
+    Notification.requestPermission();
+  }
+
+  displayFoods();
+</script>
+
+</body>
+</html>
